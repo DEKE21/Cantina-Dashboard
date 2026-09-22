@@ -1,20 +1,20 @@
 <script>
     // let title = $state("");
     // let status = $state(false);
-    let { title, backgroundColor, w,h} = $props();
+    let { title, backgroundColor, w, h } = $props();
 </script>
 
 <div class="box" style="--color:{backgroundColor}   ">{title}</div>
 
 <style>
     .box {
-         width: auto;
+        width: auto;
         height: auto;
-        border-radius: 12px;
+        border-radius: 10px;
 
         background-color: var(--color);
-        
+
         text-align: center;
-        font-size: 45px;
+        font-size: 40px;
     }
 </style>

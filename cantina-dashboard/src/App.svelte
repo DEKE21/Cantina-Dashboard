@@ -10,6 +10,7 @@
 		popup,
 		DomEvent,
 		Layer,
+		Polyline,
 	} from "leaflet";
 	import "leaflet/dist/leaflet.css";
 
@@ -40,10 +41,15 @@
 	let dataData = [0];
 	let connectionState = $state(false);
 	let testState = $state(false);
-
+	let cords = [
+		[34.670843, -86.682593],
+		[34.748023, -86.554158],
+		[34.821717, -86.42878],
+	];
 	let d = $state([[]]);
 	let chart2 = $state();
 	let altGraph = $state();
+	let SolarGraph = $state();
 	let altitudeData = $state([100, 200, 300, 400, 500]);
 	let option = {
 		title: { text: "Live Data", textStyle: { color: "#d3e1dc" } },
@@ -59,21 +65,49 @@
 		],
 
 		xAxis: {
-			splitLine: { show: false },
+			axisLabel: {
+				show: true,
+				margin: 8,
+				fontSize: 15,
+			},
+			splitLine: {
+				show: true,
+				lineStyle: {
+					color: "#AA9BAB",
+					width: 2,
+				},
+			},
 			type: "value",
 			data: time,
-			lineStyle: { color: "#d3e1dc" },
+			lineStyle: {
+				color: "#AA9BAB",
+				width: 30,
+			},
 		},
 
 		yAxis: {
+			axisLabel: {
+				show: true,
+				margin: 8,
+				fontSize: 15,
+			},
 			type: "value",
-			splitLine: { show: true },
-			lineStyle: { color: "#d3e1dc" },
+			splitLine: {
+				show: true,
+				lineStyle: {
+					color: "#AA9BAB",
+					width: 2,
+				},
+			},
+			lineStyle: {
+				color: "#d3e1dc",
+				width: 10,
+			},
 		},
 
 		textStyle: { color: "rgb(211,225,220)" },
 		axis: {
-			lineStyle: { color: "#d3e1dc" },
+			lineStyle: { color: "#AA9BAB", width: 20 },
 		},
 		series: [
 			{
@@ -163,7 +197,7 @@
 				geoGroup.addLayer(fence);
 			});
 		}
-
+		L.polyline(cords, { color: "red" }).addTo(map);
 		mapper();
 		geoGroup.addTo(map);
 		let currentTime = $state(0);
@@ -194,71 +228,91 @@
 	CANTINA DASHBOARD CANSAT #4
 	<img class="logo" alt="logo" src={logo} />
 </h1>
-<div class="data">
-	<div bind:this={mapContainer} class="map"></div>
+<div class="DM">
+	<div class="data">
+		<div class="app">
+			<Graph
+				--border-radius="12px"
+				titleText="Battery Voltage"
+				liveData={d}
+				{option}
+			/>
+		</div>
+		<div class="graph-2">
+			<Graph
+				--border-radius="12px"
+				titleText="Temperature"
+				liveData={d}
+				{option}
+				bind:chartInstance={chart2}
+			/>
+		</div>
+		<div class="altGraph">
+			<Graph
+				liveData={altitudeData}
+				bind:chartInstance={altGraph}
+				--border-radius="12px"
+				titleText="Altitude graph"
+				{option}
+			/>
+		</div>
+		<div class="SolarGraph">
+			<Graph
+				liveData={d}
+				bind:chartInstance={SolarGraph}
+				--border-radius="12px"
+				titleText="Solar graph"
+				{option}
+			/>
+		</div>
+		<div style="background-image: url({background});" class="back"></div>
+		<div class="ButtonMaster">
+			<button class="inputButton" onclick={FlipConnectionState}
+				>E-STOP</button
+			>
 
-	<div class="app">
-		<Graph
-			--border-radius="12px"
-			titleText="Battery Voltage"
-			liveData={d}
-			{option}
-		/>
-	</div>
-	<div class="graph-2">
-		<Graph
-			--border-radius="12px"
-			titleText="Temperature"
-			liveData={d}
-			{option}
-			bind:chartInstance={chart2}
-		/>
-	</div>
-	<div class="altGraph">
-		<Graph
-			liveData={altitudeData}
-			bind:chartInstance={altGraph}
-			--border-radius="12px"
-			titleText="Altitude graph"
-			{option}
-		/>
-	</div>
-	<div style="background-image: url({background});" class="back"></div>
-	<div class="ButtonMaster">
-		<button class="inputButton" onclick={FlipConnectionState}>E-STOP</button
-		>
+			<EstoppedButton
+				title="Release Pocket Cube"
+				color="#686592"
+				ESTOP={connectionState}
+				Runnable={FlipState}
+			/>
+			<EstoppedButton
+				title="Deploy Solar Panels "
+				color="#686592"
+				ESTOP={connectionState}
+				Runnable={FlipState}
+			/>
+			<div class="status">
+				<Box title="Active E&#8288;-Stop?" status={!connectionState} />
 
-		<EstoppedButton
-			title="Release Pocket Cube"
-			color="#3b5bf7"
-			ESTOP={connectionState}
-			Runnable={FlipState}
-		/>
-		<EstoppedButton
-			title="Deploy Solar Panels "
-			color="#3b5bf7"
-			ESTOP={connectionState}
-			Runnable={FlipState}
-		/>
-		<div class="status">
-			<Box title="Active E-Stop?" status={testState} />
+				<Box title="Connected to CanSat" status={testState} />
+			</div>
+		</div>
+	</div>
 
-			<Box title="Connected to CanSat" status={testState} />
+	<div class="TextData">
+		<div bind:this={mapContainer} class="map"></div>
+
+		<div class="Gryo">
+			<TextBox title="X-DPS: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="Y-DPS: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="Z-DPS: 1.000" backgroundColor="#A4669C" />
+		</div>
+		<div class="Acceleration">
+			<TextBox title="X-Acceleration: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="Y-Acceleration: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="Z-Acceleration: 1.000" backgroundColor="#A4669C" />
+		</div>
+		<div class="Misc">
+			<TextBox title="Sats: 3" backgroundColor="#A4669C" />
+			<TextBox title="Packet count: 10154" backgroundColor="#A4669C" />
+			<TextBox title="Solar Status: DEPLOYED" backgroundColor="#A4669C" />
+			<TextBox title="Flight Status: DESCENT" backgroundColor="#A4669C" />
 		</div>
 	</div>
 </div>
-<div class="TextData">
-	<div class="Gryo">
-		<TextBox title="X-DPS" backgroundColor="#A4669C" />
-		<TextBox title="Y-DPS" backgroundColor="#A4669C" />
-		<TextBox title="Z-DPS" backgroundColor="#A4669C" />
-	</div>
-	<div class="Acceleration">
-		<TextBox title="X-Acceleration" backgroundColor="#A4669C" />
-		<TextBox title="Y-Acceleration" backgroundColor="#A4669C" />
-		<TextBox title="Z-Acceleration" backgroundColor="#A4669C" />
-	</div>
-</div>
+<div class="time">Mission Time: 4:44.00</div>
 
 <style>
 	html,
@@ -273,7 +327,10 @@
 	* {
 		box-sizing: border-box;
 	}
-
+	.DM {
+		display: flex;
+		flex-direction: column;
+	}
 	/* 1. Header Fix: Pinned to edges, flex-aligned content */
 	.banner {
 		color: #d0b183;
@@ -316,8 +373,8 @@
 	}
 
 	.map {
-		width: 25%;
-		height: 60%;
+		width: 300px;
+		height: 300px;
 		border-radius: 12px;
 		overflow: hidden;
 		z-index: 0;
@@ -329,12 +386,18 @@
 		flex: 1;
 		height: 100%;
 	}
-
+	.time {
+		transform: translate(325px, -305px);
+		width: 590px;
+		background-color: #a4669c;
+		border-radius: 10px;
+		font-size: 40px;
+	}
 	.ButtonMaster {
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		width: 120px; /* Rigid track layout controls width boundary */
+		width: 120px;
 		height: 100%;
 	}
 
@@ -355,14 +418,20 @@
 	.TextData {
 		display: flex;
 		flex-direction: row;
-		gap: 20px;
-		transform: translateY(-100%);
+		gap: 5px;
+		transform: translate(20px, -50%);
 	}
-	.Gyro {
+	.Gryo {
 		display: flex;
 		flex-direction: column;
-		background-color: #051936;
-		height: auto;
+		gap: 1px;
+	}
+
+	.Acceleration,
+	.Misc {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
 	}
 	.back {
 		position: fixed;

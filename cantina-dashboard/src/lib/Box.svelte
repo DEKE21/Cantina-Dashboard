@@ -5,25 +5,38 @@
     let backgroundColor = $state("#ff0000");
     $effect(() => {
         if (status == true) {
-            backgroundColor = "#32fd04";
+            backgroundColor = "#99FF99";
         } else {
-            backgroundColor = "#ff0000";
+            backgroundColor = "#FD4835";
         }
     });
 </script>
 
-<div class="box" style="--color:{backgroundColor}">{title}</div>
+<div class="box" style="--color:{backgroundColor}">
+    <div class="textbox">{title}</div>
+</div>
 
 <style>
     .box {
+        display: flex;
         width: 100px;
         height: 100px;
         border-radius: 5px;
-        font-size: 20px;
-        text-align: center;
-        justify-content: center;
-        align-items: center; 
-        
+
         background-color: var(--color);
+    }
+    .textbox {
+        gap: 10px;
+        width: 90px;
+        height: 90px;
+        font-size: 20px;
+
+        word-break: keep-all;
+        width: 1ch;
+
+        text-align: center;
+        align-content: center;
+        justify-content: center;
+        align-items: center;
     }
 </style>
