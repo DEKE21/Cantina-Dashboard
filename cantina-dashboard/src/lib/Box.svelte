@@ -30,7 +30,7 @@
         width: 90px;
         height: 90px;
         font-size: 20px;
-
+        
         word-break: keep-all;
         width: 1ch;
 

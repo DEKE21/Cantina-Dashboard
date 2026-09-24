@@ -50,15 +50,18 @@
 	let chart2 = $state();
 	let altGraph = $state();
 	let SolarGraph = $state();
-	let altitudeData = $state([100, 200, 300, 400, 500]);
+	let altitudeData = $state([[]]);
 	let option = {
-		title: { text: "Live Data", textStyle: { color: "#d3e1dc" } },
+		title: {
+			text: "Live Data",
+			textStyle: { fontWeight: "bold" },
+		},
 		backgroundColor: "#D0B183",
 		tooltip: { trigger: "axis", showDelay: 0, transitionDuration: 0 },
 
 		dataZoom: [
 			{
-				type: "slider",
+				type: "inside",
 				start: 0,
 				end: 100,
 			},
@@ -79,8 +82,13 @@
 			},
 			type: "value",
 			data: time,
+			name: "Time (Seconds)",
+			nameTextStyle: {
+				fontSize: 15, // Set font size in pixels (default is 12)
+				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+			},
+			nameLocation: "center",
 			lineStyle: {
-				color: "#AA9BAB",
 				width: 30,
 			},
 		},
@@ -89,7 +97,8 @@
 			axisLabel: {
 				show: true,
 				margin: 8,
-				fontSize: 15,
+				fontSize: 15, // Font size
+				interval: 0, // Force show all labels
 			},
 			type: "value",
 			splitLine: {
@@ -100,14 +109,22 @@
 				},
 			},
 			lineStyle: {
-				color: "#d3e1dc",
 				width: 10,
+			},
+			name: "Default ()",
+			nameTextStyle: {
+				fontSize: 15, // Set font size in pixels (default is 12)
+				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+			},
+			nameLocation: "center",
+			lineStyle: {
+				width: 30,
 			},
 		},
 
-		textStyle: { color: "rgb(211,225,220)" },
+		textStyle: { fontWeight: "bold" }, //color: "rgb(211,225,220)"
 		axis: {
-			lineStyle: { color: "#AA9BAB", width: 20 },
+			lineStyle: { width: 20, fontWeight: "bold" },
 		},
 		series: [
 			{
@@ -116,7 +133,7 @@
 				sampling: "lttb",
 				type: "line",
 				smooth: true,
-				color: "#83A5D6",
+				color: "#5580bf",
 				itemStyle: {
 					borderRadius: [8, 8, 8, 8], // Rounds top-left and top-right corners
 				},
@@ -169,8 +186,6 @@
 			GYRO_Y: 0,
 		});
 
-		altitudeData = [100];
-
 		function UpdateTelemetry() {}
 		let initialView = [34.7304, -86.5861];
 
@@ -201,10 +216,14 @@
 		mapper();
 		geoGroup.addTo(map);
 		let currentTime = $state(0);
+		let alt = $state(0);
 		updateInterval = setInterval(() => {
 			currentTime += 0.25;
 			const randomValue = Math.floor(Math.random() * 100);
 			d.push([currentTime, randomValue]);
+			altitudeData.push([currentTime, alt]);
+			alt += 5;
+
 			time.push(currentTime);
 			chart.setOption({
 				xAxis: [{ data: currentTime }],
@@ -235,6 +254,8 @@
 				--border-radius="12px"
 				titleText="Battery Voltage"
 				liveData={d}
+				Units="Voltage (V)"
+				UnitSub="V"
 				{option}
 			/>
 		</div>
@@ -242,6 +263,8 @@
 			<Graph
 				--border-radius="12px"
 				titleText="Temperature"
+				Units="Temperature (C&deg;)"
+				UnitSub="C&deg;"
 				liveData={d}
 				{option}
 				bind:chartInstance={chart2}
@@ -253,6 +276,8 @@
 				bind:chartInstance={altGraph}
 				--border-radius="12px"
 				titleText="Altitude graph"
+				Units="Meters (M)"
+				UnitSub="M"
 				{option}
 			/>
 		</div>
@@ -262,33 +287,12 @@
 				bind:chartInstance={SolarGraph}
 				--border-radius="12px"
 				titleText="Solar graph"
+				Units="Voltage (V)"
+				UnitSub="V"
 				{option}
 			/>
 		</div>
-		<div style="background-image: url({background});" class="back"></div>
-		<div class="ButtonMaster">
-			<button class="inputButton" onclick={FlipConnectionState}
-				>E-STOP</button
-			>
-
-			<EstoppedButton
-				title="Release Pocket Cube"
-				color="#686592"
-				ESTOP={connectionState}
-				Runnable={FlipState}
-			/>
-			<EstoppedButton
-				title="Deploy Solar Panels "
-				color="#686592"
-				ESTOP={connectionState}
-				Runnable={FlipState}
-			/>
-			<div class="status">
-				<Box title="Active E&#8288;-Stop?" status={!connectionState} />
-
-				<Box title="Connected to CanSat" status={testState} />
-			</div>
-		</div>
+		<div style="background-color: #f7e9cd;" class="back"></div>
 	</div>
 
 	<div class="TextData">
@@ -313,6 +317,29 @@
 	</div>
 </div>
 <div class="time">Mission Time: 4:44.00</div>
+<div class="status">
+	<Box title="Active Safety Lock?" status={!connectionState} />
+
+	<Box title="Connected to CanSat?" status={testState} />
+</div>
+<div class="ButtonMaster">
+	<button class="inputButton" onclick={FlipConnectionState}
+		>SAFTEY LOCK</button
+	>
+
+	<EstoppedButton
+		title="Release Pocket Cube"
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={FlipState}
+	/>
+	<EstoppedButton
+		title="Deploy Solar Panels "
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={FlipState}
+	/>
+</div>
 
 <style>
 	html,
@@ -370,6 +397,7 @@
 		margin-top: 10vh;
 		height: 68vh;
 		width: 100%;
+		
 	}
 
 	.map {
@@ -387,51 +415,53 @@
 		height: 100%;
 	}
 	.time {
-		transform: translate(325px, -305px);
-		width: 590px;
+		transform: translate(322px, -304px);
+		width: 585px;
 		background-color: #a4669c;
 		border-radius: 10px;
 		font-size: 40px;
 	}
 	.ButtonMaster {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		gap: 10px;
-		width: 120px;
-		height: 100%;
+
+		transform: translate(1015px, -400px);
 	}
 
 	.inputButton {
-		width: 100%;
-		height: 60px;
+		width: 100px;
+		height: 100px;
 		border-radius: 12px;
 		background-color: #86a8d8;
 	}
 
 	.status {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		gap: 10px;
 		flex-grow: 1;
+		transform: translate(325px, -300px);
 	}
 
 	.TextData {
 		display: flex;
 		flex-direction: row;
-		gap: 5px;
+		gap: 2px;
+
 		transform: translate(20px, -50%);
 	}
 	.Gryo {
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
+		gap: 2px;
 	}
 
 	.Acceleration,
 	.Misc {
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
+		gap: 2px;
 	}
 	.back {
 		position: fixed;

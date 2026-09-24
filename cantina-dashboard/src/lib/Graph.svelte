@@ -2,7 +2,14 @@
     import { onMount } from "svelte";
     import * as echarts from "echarts";
 
-    let { titleText, liveData, option, chartInstance = $bindable() } = $props();
+    let {
+        titleText,
+        Units,
+        UnitSub,
+        liveData,
+        option,
+        chartInstance = $bindable(),
+    } = $props();
 
     let chartContainer;
     let liveNumberBar = $state(0);
@@ -11,7 +18,8 @@
         chartInstance = echarts.init(chartContainer);
         chartInstance.setOption(option);
         chartInstance.setOption({
-            title: { text: titleText, textStyle: { color: "#d3e1dc" } },
+            title: { text: titleText, textStyle: {} },
+            yAxis: { name: Units },
         });
         const resizeObserver = new ResizeObserver(() =>
             chartInstance?.resize(),
@@ -36,7 +44,7 @@
 
 <div class="GM">
     <div class="graph" bind:this={chartContainer}></div>
-    <div class="box">{liveNumberBar}</div>
+    <div class="box">{liveNumberBar} {UnitSub}</div>
 </div>
 
 <style>
