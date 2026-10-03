@@ -1,18 +1,21 @@
 <script>
     import { onMount } from "svelte";
     import * as echarts from "echarts";
-
+    //  /**@property {Array} [time=[]] */
     let {
         titleText,
         Units,
         UnitSub,
-        liveData,
+        time = $bindable(),
+        liveData = $bindable(),
         option,
         chartInstance = $bindable(),
     } = $props();
 
     let chartContainer;
     let liveNumberBar = $state(0);
+    let yBuffer = [];
+    let xBuffer = [];
 
     onMount(() => {
         chartInstance = echarts.init(chartContainer);
@@ -31,15 +34,25 @@
             chartInstance?.dispose();
         };
     });
+    let m = setInterval(() => {
+       // console.log("gr", liveData);
+        if (liveData != yBuffer[-1] || time != xBuffer[-1]) {
+            yBuffer.push(parseInt(liveData));
+            xBuffer.push(parseInt(time));
+              console.log([xBuffer, yBuffer]);
 
-    $effect(() => {
-        if (chartInstance && liveData) {
-            chartInstance.setOption({
-                series: [{ data: liveData }],
-            });
-            liveNumberBar = liveData.at(-1)[1];
+            if (chartInstance && yBuffer & xBuffer) {
+                chartInstance.setOption({
+                    xAxis:[{data:xBuffer}],
+                    series: [{ data: [ yBuffer] }
+                ],
+                });
+                liveNumberBar = liveData[-1];
+            }
         }
-    });
+    },250);
+
+  //  $effect(() => {});
 </script>
 
 <div class="GM">

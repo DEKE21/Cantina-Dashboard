@@ -26,6 +26,7 @@
 	import AltitudeGraph from "./lib/AltitudeGraph.svelte";
 	import EstoppedButton from "./lib/EstoppedButton.svelte";
 	import TextBox from "./lib/TextBox.svelte";
+	import WebSocketClient from "./lib/WebSocketClient.svelte";
 
 	// import tailwindcss from '@tailwindcss/vite'
 	/** @type {HTMLDivElement} **/
@@ -39,6 +40,8 @@
 	let updateInterval;
 	let time = [0];
 	let dataData = [0];
+	let messageBuffer = $state([[0]]);
+
 	let connectionState = $state(false);
 	let testState = $state(false);
 	let cords = [
@@ -46,7 +49,7 @@
 		[34.748023, -86.554158],
 		[34.821717, -86.42878],
 	];
-	let d = $state([[]]);
+	let d = $state([]);
 	let chart2 = $state();
 	let altGraph = $state();
 	let SolarGraph = $state();
@@ -162,30 +165,162 @@
 		}
 		console.log("FLIP");
 	}
+
+	let TEAM_ID = $state.raw("0004");
+	let MISSION_TIME = $state.raw(0);
+	let PACKET_COUNT = $state.raw(0);
+	let STATE = $state.raw("");
+	let MECH_STATE = $state.raw(0);
+	let ALTITUDE = $state([]);
+	let TEMP = $state([]);
+	let BATTERY_VOLTAGE = $state([]);
+	let GPS_LATITUDE = $state.raw(0);
+	let GPS_LONGITUDE = $state.raw(0);
+	let GPS_SATS = $state.raw(0);
+	let GYRO_R = $state.raw(0);
+	let GYRO_P = $state.raw(0);
+	let GYRO_Y = $state.raw(0);
+
+
+
+
+
+
+
+
+
+
+
+	let bigOption = {
+		grid:[],
+		title: {
+			text: "Live Data",
+			textStyle: { fontWeight: "bold" },
+		},
+		backgroundColor: "#D0B183",
+		tooltip: { trigger: "axis", showDelay: 0, transitionDuration: 0 },
+
+		dataZoom: [
+			{
+				type: "inside",
+				start: 0,
+				end: 100,
+			},
+		],
+
+		xAxis: {
+			axisLabel: {
+				show: true,
+				margin: 8,
+				fontSize: 15,
+			},
+			splitLine: {
+				show: true,
+				lineStyle: {
+					color: "#AA9BAB",
+					width: 2,
+				},
+			},
+			type: "value",
+			data: time,
+			name: "Time (Seconds)",
+			nameTextStyle: {
+				fontSize: 15, // Set font size in pixels (default is 12)
+				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+			},
+			nameLocation: "center",
+			lineStyle: {
+				width: 30,
+			},
+		},
+
+		yAxis: {
+			axisLabel: {
+				show: true,
+				margin: 8,
+				fontSize: 15, // Font size
+				interval: 0, // Force show all labels
+			},
+			type: "value",
+			splitLine: {
+				show: true,
+				lineStyle: {
+					color: "#AA9BAB",
+					width: 2,
+				},
+			},
+			lineStyle: {
+				width: 10,
+			},
+			name: "Default ()",
+			nameTextStyle: {
+				fontSize: 15, // Set font size in pixels (default is 12)
+				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+			},
+			nameLocation: "center",
+			lineStyle: {
+				width: 30,
+			},
+		},
+
+		textStyle: { fontWeight: "bold" }, //color: "rgb(211,225,220)"
+		axis: {
+			lineStyle: { width: 20, fontWeight: "bold" },
+		},
+		series: [
+			{
+				data: dataData,
+				showSymbol: false, // Speeds up rendering significantly by omitting point dots
+				sampling: "lttb",
+				type: "line",
+				smooth: true,
+				color: "#5580bf",
+				itemStyle: {
+					borderRadius: [8, 8, 8, 8], // Rounds top-left and top-right corners
+				},
+			},
+		],
+	};
+
+
+
+
+
+
+
+
+
+
+
+
 	onMount(() => {
 		//chart = echarts.init(chartDom);
 
 		use([BarChart, GridComponent, CanvasRenderer, TitleComponent]);
 
 		//chart.setOption(option);
+		/*
+		$effect(() => {
+			if (messageBuffer) {
+				console.log("p", messageBuffer);
 
-		let telemetry = $state({
-			TEAM_ID: "0004",
-			MISSION_TIME: 0.0,
-			PACKET_COUNT: 0,
-			STATE: "k",
-			MECH_STATE: "k",
-			ALTITUDE: 0,
-			TEMP: 0,
-			BATTERY_VOLTAGE: 0,
-			GPS_LATITUDE: 0,
-			GPS_LONGITUDE: 0,
-			GPS_SATS: 0,
-			GYRO_R: 0,
-			GYRO_P: 0,
-			GYRO_Y: 0,
-		});
-
+				TEAM_ID = 4;
+				MISSION_TIME = messageBuffer[-1][1];
+				PACKET_COUNT = messageBuffer.at(-1)[2];
+				STATE = messageBuffer.at(-1)[3];
+				MECH_STATE = messageBuffer.at(-1)[4];
+				ALTITUDE.push(parseInt(messageBuffer.at(-1)[5]));
+				TEMP.push(parseInt(messageBuffer.at(-1)[6]));
+				BATTERY_VOLTAGE.push(messageBuffer.at(-1)[7]);
+				GPS_LATITUDE = messageBuffer.at(-1)[8];
+				GPS_LONGITUDE = messageBuffer.at(-1)[9];
+				GPS_SATS = messageBuffer.at(-1)[10];
+				GYRO_R = messageBuffer.at(-1)[11];
+				GYRO_P = messageBuffer.at(-1)[12];
+				GYRO_Y = messageBuffer.at(-1)[13];
+				messageBuffer.shift();
+			}
+		});*/
 		function UpdateTelemetry() {}
 		let initialView = [34.7304, -86.5861];
 
@@ -217,32 +352,48 @@
 		geoGroup.addTo(map);
 		let currentTime = $state(0);
 		let alt = $state(0);
-		updateInterval = setInterval(() => {
+		let updateInterval = setInterval(() => {
+			console.log("bufferm");
+			if (messageBuffer.length > 0) {
+				let arg = messageBuffer.pop();
+			
+				console.log("p", messageBuffer);
+
+				TEAM_ID = 4;
+				MISSION_TIME = parseInt(arg[1]);
+ 
+				//messageBuffer[-1][1];
+				PACKET_COUNT = arg[2];
+				STATE = arg[3];
+				MECH_STATE = arg[4];
+				ALTITUDE.push(parseInt(arg[5]));
+				TEMP.push(parseInt(arg[6]));
+				BATTERY_VOLTAGE.push(arg[7]);
+				GPS_LATITUDE = arg[8];
+				GPS_LONGITUDE = arg[9];
+				GPS_SATS = arg[10];
+				GYRO_R = arg[11];
+				GYRO_P = arg[12];
+				GYRO_Y = arg[13];
+			}
 			currentTime += 0.25;
 			const randomValue = Math.floor(Math.random() * 100);
-			d.push([currentTime, randomValue]);
+			d.push(randomValue);
 			altitudeData.push([currentTime, alt]);
 			alt += 5;
 
 			time.push(currentTime);
-			chart.setOption({
-				xAxis: [{ data: currentTime }],
-				series: [{ data: d }],
-			});
 		}, 250);
-		//const resizeObserver = new ResizeObserver(() => chart?.resize());
-		//resizeObserver.observe(chartDom);
 
-		//echarts.connect([chart, chart2, altGraph]);
 		return () => {
 			map.remove();
 			clearInterval(updateInterval);
 			resizeObserver.disconnect();
-			//chart?.dispose();
 		};
 	});
 </script>
 
+<WebSocketClient {messageBuffer} />
 <h1 class="banner">
 	CANTINA DASHBOARD CANSAT #4
 	<img class="logo" alt="logo" src={logo} />
@@ -253,6 +404,7 @@
 			<Graph
 				--border-radius="12px"
 				titleText="Battery Voltage"
+				time={MISSION_TIME}
 				liveData={d}
 				Units="Voltage (V)"
 				UnitSub="V"
@@ -265,14 +417,16 @@
 				titleText="Temperature"
 				Units="Temperature (C&deg;)"
 				UnitSub="C&deg;"
-				liveData={d}
+				liveData={TEMP}
+				time={MISSION_TIME}
 				{option}
 				bind:chartInstance={chart2}
 			/>
 		</div>
 		<div class="altGraph">
 			<Graph
-				liveData={altitudeData}
+				liveData={ALTITUDE}
+				time={MISSION_TIME}
 				bind:chartInstance={altGraph}
 				--border-radius="12px"
 				titleText="Altitude graph"
@@ -284,6 +438,7 @@
 		<div class="SolarGraph">
 			<Graph
 				liveData={d}
+				time={MISSION_TIME}
 				bind:chartInstance={SolarGraph}
 				--border-radius="12px"
 				titleText="Solar graph"
@@ -310,9 +465,12 @@
 		</div>
 		<div class="Misc">
 			<TextBox title="Sats: 3" backgroundColor="#A4669C" />
-			<TextBox title="Packet count: 10154" backgroundColor="#A4669C" />
+			<TextBox
+				title="Packet count: {PACKET_COUNT}"
+				backgroundColor="#A4669C"
+			/>
 			<TextBox title="Solar Status: DEPLOYED" backgroundColor="#A4669C" />
-			<TextBox title="Flight Status: DESCENT" backgroundColor="#A4669C" />
+			<TextBox title="Flight Status: {STATE}" backgroundColor="#A4669C" />
 		</div>
 	</div>
 </div>
@@ -358,7 +516,6 @@
 		display: flex;
 		flex-direction: column;
 	}
-	/* 1. Header Fix: Pinned to edges, flex-aligned content */
 	.banner {
 		color: #d0b183;
 		font-size: 50px;
@@ -373,7 +530,6 @@
 		z-index: 10;
 		margin: 0;
 
-		/* Flexbox layout to center the main text */
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -396,8 +552,6 @@
 		padding: 20px;
 		margin-top: 10vh;
 		height: 68vh;
-		width: 100%;
-		
 	}
 
 	.map {
@@ -408,12 +562,6 @@
 		z-index: 0;
 	}
 
-	.app,
-	.graph-2,
-	.altGraph {
-		flex: 1;
-		height: 100%;
-	}
 	.time {
 		transform: translate(322px, -304px);
 		width: 585px;
