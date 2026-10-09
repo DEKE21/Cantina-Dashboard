@@ -28,7 +28,6 @@
 	import TextBox from "./lib/TextBox.svelte";
 	import WebSocketClient from "./lib/WebSocketClient.svelte";
 
-	// import tailwindcss from '@tailwindcss/vite'
 	/** @type {HTMLDivElement} **/
 	let mapContainer;
 
@@ -54,7 +53,7 @@
 	let altGraph = $state();
 	let SolarGraph = $state();
 	let altitudeData = [[]];
-	let wsClient = $state(); // Holds the rendered component instance
+	let wsClient = $state();
 
 	function SendReleaseCommand() {
 		if (wsClient) {
@@ -141,13 +140,13 @@
 		series: [
 			{
 				data: dataData,
-				showSymbol: false, // Speeds up rendering significantly by omitting point dots
+				showSymbol: false,
 				sampling: "lttb",
 				type: "line",
 				smooth: true,
 				color: "#5580bf",
 				itemStyle: {
-					borderRadius: [8, 8, 8, 8], // Rounds top-left and top-right corners
+					borderRadius: [8, 8, 8, 8],
 				},
 			},
 		],
@@ -174,7 +173,7 @@
 		}
 		console.log("FLIP");
 	}
-	
+
 	let TEAM_ID = $state.raw("0004");
 	let MISSION_TIME = $state.raw(0);
 	let PACKET_COUNT = $state.raw(0);
