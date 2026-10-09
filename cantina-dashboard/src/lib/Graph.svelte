@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import * as echarts from "echarts";
-    //  /**@property {Array} [time=[]] */
+
     let {
         titleText,
         Units,
@@ -18,41 +18,47 @@
     let xBuffer = [];
 
     onMount(() => {
+        // Initialize Chart
         chartInstance = echarts.init(chartContainer);
         chartInstance.setOption(option);
         chartInstance.setOption({
             title: { text: titleText, textStyle: {} },
             yAxis: { name: Units },
         });
+
+        // Handle Resizing
         const resizeObserver = new ResizeObserver(() =>
             chartInstance?.resize(),
         );
         resizeObserver.observe(chartContainer);
 
+        // Safe Live Interval updates
+        let m = setInterval(() => {
+            // FIX: Use .at(-1) instead of [-1]
+            if (liveData !== yBuffer.at(-1) || time !== xBuffer.at(-1)) {
+                yBuffer.push(parseInt(liveData));
+                xBuffer.push(parseInt(time));
+
+                // FIX: Correct logical && and remove extra array nesting in series data
+                if (chartInstance && liveData && xBuffer.length) {
+                    chartInstance.setOption({
+                        xAxis: [{ data: time }],
+                        series: [{ data: liveData }],
+                    });
+
+                    // FIX: Set label to the last item
+                    liveNumberBar = liveData[-1] || liveData.at(-1) || 0;
+                }
+            }
+        }, 100);
+
+        // Clean up intervals and observers when destroyed
         return () => {
+            clearInterval(m);
             resizeObserver.disconnect();
             chartInstance?.dispose();
         };
     });
-    let m = setInterval(() => {
-       // console.log("gr", liveData);
-        if (liveData != yBuffer[-1] || time != xBuffer[-1]) {
-            yBuffer.push(parseInt(liveData));
-            xBuffer.push(parseInt(time));
-              console.log([xBuffer, yBuffer]);
-
-            if (chartInstance && yBuffer & xBuffer) {
-                chartInstance.setOption({
-                    xAxis:[{data:xBuffer}],
-                    series: [{ data: [ yBuffer] }
-                ],
-                });
-                liveNumberBar = liveData[-1];
-            }
-        }
-    },250);
-
-  //  $effect(() => {});
 </script>
 
 <div class="GM">
@@ -62,6 +68,7 @@
 
 <style>
     .GM {
+        display: flex; /* Added display: flex to make flex properties work */
         flex: auto;
         flex-direction: column;
     }

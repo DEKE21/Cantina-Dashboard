@@ -40,7 +40,7 @@
 	let updateInterval;
 	let time = [0];
 	let dataData = [0];
-	let messageBuffer = $state([[0]]);
+	let messageBuffer = [[0]];
 
 	let connectionState = $state(false);
 	let testState = $state(false);
@@ -49,11 +49,20 @@
 		[34.748023, -86.554158],
 		[34.821717, -86.42878],
 	];
-	let d = $state([]);
+	let d = [];
 	let chart2 = $state();
 	let altGraph = $state();
 	let SolarGraph = $state();
-	let altitudeData = $state([[]]);
+	let altitudeData = [[]];
+	let wsClient = $state(); // Holds the rendered component instance
+
+	function SendReleaseCommand() {
+		if (wsClient) {
+			wsClient.SendCommand();
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
 	let option = {
 		title: {
 			text: "Live Data",
@@ -165,7 +174,7 @@
 		}
 		console.log("FLIP");
 	}
-
+	
 	let TEAM_ID = $state.raw("0004");
 	let MISSION_TIME = $state.raw(0);
 	let PACKET_COUNT = $state.raw(0);
@@ -181,18 +190,8 @@
 	let GYRO_P = $state.raw(0);
 	let GYRO_Y = $state.raw(0);
 
-
-
-
-
-
-
-
-
-
-
 	let bigOption = {
-		grid:[],
+		grid: [],
 		title: {
 			text: "Live Data",
 			textStyle: { fontWeight: "bold" },
@@ -282,17 +281,6 @@
 		],
 	};
 
-
-
-
-
-
-
-
-
-
-
-
 	onMount(() => {
 		//chart = echarts.init(chartDom);
 
@@ -356,12 +344,12 @@
 			console.log("bufferm");
 			if (messageBuffer.length > 0) {
 				let arg = messageBuffer.pop();
-			
+
 				console.log("p", messageBuffer);
 
 				TEAM_ID = 4;
 				MISSION_TIME = parseInt(arg[1]);
- 
+
 				//messageBuffer[-1][1];
 				PACKET_COUNT = arg[2];
 				STATE = arg[3];
@@ -383,7 +371,7 @@
 			alt += 5;
 
 			time.push(currentTime);
-		}, 250);
+		}, 100);
 
 		return () => {
 			map.remove();
@@ -489,7 +477,7 @@
 		title="Release Pocket Cube"
 		color="#686592"
 		ESTOP={connectionState}
-		Runnable={FlipState}
+		Runnable={SendReleaseCommand}
 	/>
 	<EstoppedButton
 		title="Deploy Solar Panels "
@@ -498,6 +486,7 @@
 		Runnable={FlipState}
 	/>
 </div>
+<WebSocketClient bind:this={wsClient} {messageBuffer} />
 
 <style>
 	html,
