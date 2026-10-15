@@ -3,17 +3,12 @@
     import Box from "./Box.svelte";
     import { blur } from "svelte/transition";
 
-    let {
-        title,
-         ESTOP,
-        Runnable,
-        color,
-    } = $props();
+    let { title, ESTOP, Runnable, color } = $props();
     let blurFactor = $state(2);
 
     function clicked() {
         if (ESTOP == true) {
-          Runnable();
+            Runnable();
         }
     }
     $effect(() => {
@@ -33,7 +28,11 @@
 
 <style>
     .ESTOP {
-        width: 100px;
+        text-align: center;
+        font-size: 24px;
+         text-overflow: ellipsis;
+        font-weight: bold;
+        width: 150px;
         height: 100px;
         border-radius: 12px;
         background-color: var(--color);

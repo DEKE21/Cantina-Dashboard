@@ -5,7 +5,7 @@ class TelemetryData(object):
     TeamID: int
     MissionTime: int
     PacketCount: int
-    State: str
+    State: int
     MechState: int
     altitude:float
     temp:float
@@ -20,7 +20,7 @@ class TelemetryData(object):
     accelY:float
     accelZ:float
     leftSolarVolts: float
-    rightSolarvolts: float
+    rightSolarVolts: float
     def __iter__(self):
         return iter(asdict(self))
     def ToDict(self):
@@ -44,7 +44,7 @@ class TelemetryData(object):
             filtererd.append(int(seperated[2]))
             filtererd.append(seperated[3])
             for x in range(4,len(seperated)):
-                    if(x != 9):
+                    if(x != 10):
                         filtererd.append(float(seperated[x]))
                     else:
                         filtererd.append(int(seperated[x]))

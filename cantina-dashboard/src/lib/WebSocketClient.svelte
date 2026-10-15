@@ -1,17 +1,18 @@
 <script>
     import { onMount } from "svelte";
 
-    let { messageBuffer = $bindable([[]]) } = $props();
+    // 1. Default to an empty array [] instead of [[]]
+    // Bonus: Added an optional connected = $bindable(false) so your dashboard status box can show real connection status!
+    let { messageBuffer = $bindable([]), connected = $bindable(false) } =
+        $props();
 
-    // 1. Move the socket variable to the top level so it can be accessed anywhere
-    let socket; 
+    let socket = null;
 
-    // 2. Move SendCommand outside of onMount and add 'export'
-    export function SendCommand() {
-        console.log("Trying to send command");
+    export function SendCommand(cmd) {
+        console.log("Trying to send command:", cmd.trim());
         if (socket && socket.readyState === WebSocket.OPEN) {
             console.log("Sending command");
-            socket.send("CMD RELEASE\n");
+            socket.send(cmd);
         } else {
             console.error("Socket not open or not initialized");
         }
@@ -20,46 +21,81 @@
     onMount(() => {
         const delay = 3000;
         let reconnection = null;
+        let isDestroyed = false;
 
         function ConnectToServer() {
+            if (isDestroyed) return;
+            Cleanup();
+
             try {
                 socket = new WebSocket("ws://localhost:8001");
                 socket.addEventListener("open", Opened);
                 socket.addEventListener("close", Closed);
                 socket.addEventListener("error", HandleError);
                 socket.addEventListener("message", MessageRcv);
-            } catch {
-                console.log("Failed to connect");
-                socket = null;
+            } catch (err) {
+                console.error("Failed to connect:", err);
                 Closed();
             }
         }
 
         function Opened() {
             console.log("Client connection successful");
-            if (reconnection) clearTimeout(reconnection);
+            connected = true;
+            if (reconnection) {
+                clearTimeout(reconnection);
+                reconnection = null;
+            }
         }
 
         function Closed() {
+            connected = false;
             Cleanup();
-            reconnection = setTimeout(() => {
-                console.log("Client connection ended, attempting reconnection every 3 seconds");
-                ConnectToServer();
-            }, delay);
+            if (!isDestroyed && !reconnection) {
+                reconnection = setTimeout(() => {
+                    reconnection = null;
+                    console.log(
+                        "Client connection ended, attempting reconnection...",
+                    );
+                    ConnectToServer();
+                }, delay);
+            }
         }
 
         function MessageRcv(event) {
-            let buff = event.data.split(",");
-            messageBuffer.push(buff);
+            if (typeof event.data !== "string") return;
+
+            const raw = event.data.trim();
+            // Ignore empty messages or ping/pong heartbeats
+            if (!raw || raw === "ping" || raw === "pong") return;
+
+            const buff = raw.split(",");
+            // Only push valid telemetry packets (expecting at least 14 columns: indices 0-13)
+            if (buff.length >= 14) {
+                //messageBuffer.push(buff);
+                messageBuffer = [...messageBuffer, buff];
+            } else {
+                console.warn("Ignored malformed/non-telemetry packet:", raw);
+            }
         }
 
         function Cleanup() {
             if (socket) {
+                socket.removeEventListener("open", Opened);
+                socket.removeEventListener("close", Closed);
+                socket.removeEventListener("error", HandleError);
+                socket.removeEventListener("message", MessageRcv);
+                if (
+                    socket.readyState === WebSocket.OPEN ||
+                    socket.readyState === WebSocket.CONNECTING
+                ) {
+                    socket.close();
+                }
                 socket = null;
             }
         }
 
-        function HandleError(event) {
+        function HandleError() {
             console.error("WebSocket encountered an error");
         }
 
@@ -67,12 +103,12 @@
 
         const pingInterval = setInterval(() => {
             if (socket && socket.readyState === WebSocket.OPEN) {
-                // Note: WebSocket.send() only takes one argument. The '0' was invalid.
-                socket.send("ping"); 
+                socket.send("ping");
             }
         }, 1000);
 
         return () => {
+            isDestroyed = true;
             if (reconnection) clearTimeout(reconnection);
             clearInterval(pingInterval);
             Cleanup();

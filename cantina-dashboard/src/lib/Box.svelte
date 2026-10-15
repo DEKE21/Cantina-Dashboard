@@ -12,31 +12,23 @@
     });
 </script>
 
-<div class="box" style="--color:{backgroundColor}">
-    <div class="textbox">{title}</div>
-</div>
+<div class="box" style="--color:{backgroundColor}" >{title}</div>
 
 <style>
     .box {
         display: flex;
-        width: 100px;
-        height: 100px;
-        border-radius: 5px;
+        width: 190px;
+        height: 93px;
+        border-radius: 12px;
+        font-size: 24px;
 
-        background-color: var(--color);
-    }
-    .textbox {
-        gap: 10px;
-        width: 90px;
-        height: 90px;
-        font-size: 20px;
-        
         word-break: keep-all;
-        width: 1ch;
 
         text-align: center;
         align-content: center;
         justify-content: center;
         align-items: center;
+        background-color: var(--color);
     }
+
 </style>

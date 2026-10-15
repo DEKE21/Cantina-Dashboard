@@ -3,72 +3,107 @@
     import * as echarts from "echarts";
 
     let {
-        titleText,
-        Units,
-        UnitSub,
-        time = $bindable(),
-        liveData = $bindable(),
-        option,
-        chartInstance = $bindable(),
+        titleText = "Graph",
+        Units = "",
+        UnitSub = "",
+        time = [],
+        liveData = [],
+        liveData2 = undefined,
+        option = {},
+        chartInstance = $bindable(null),
     } = $props();
 
     let chartContainer;
+    let localChart = $state.raw(null); // $state.raw tracks readiness without deep-proxying ECharts!
     let liveNumberBar = $state(0);
-    let yBuffer = [];
-    let xBuffer = [];
+    let liveNumberBar2 = $state(null);
 
     onMount(() => {
-        // Initialize Chart
-        chartInstance = echarts.init(chartContainer);
-        chartInstance.setOption(option);
-        chartInstance.setOption({
+        const instance = echarts.init(chartContainer);
+
+        // Clone option so 4 graphs don't mutate the exact same shared JS object reference
+        if (option) {
+            instance.setOption(structuredClone(option));
+        }
+
+        instance.setOption({
             title: { text: titleText, textStyle: {} },
+            xAxis: { type: "category" },
             yAxis: { name: Units },
         });
 
-        // Handle Resizing
-        const resizeObserver = new ResizeObserver(() =>
-            chartInstance?.resize(),
-        );
+        localChart = instance;
+        chartInstance = instance;
+
+        const resizeObserver = new ResizeObserver(() => {
+            instance.resize();
+        });
         resizeObserver.observe(chartContainer);
 
-        // Safe Live Interval updates
-        let m = setInterval(() => {
-            // FIX: Use .at(-1) instead of [-1]
-            if (liveData !== yBuffer.at(-1) || time !== xBuffer.at(-1)) {
-                yBuffer.push(parseInt(liveData));
-                xBuffer.push(parseInt(time));
-
-                // FIX: Correct logical && and remove extra array nesting in series data
-                if (chartInstance && liveData && xBuffer.length) {
-                    chartInstance.setOption({
-                        xAxis: [{ data: time }],
-                        series: [{ data: liveData }],
-                    });
-
-                    // FIX: Set label to the last item
-                    liveNumberBar = liveData[-1] || liveData.at(-1) || 0;
-                }
-            }
-        }, 100);
-
-        // Clean up intervals and observers when destroyed
         return () => {
-            clearInterval(m);
             resizeObserver.disconnect();
-            chartInstance?.dispose();
+            instance.dispose();
         };
+    });
+
+    $effect(() => {
+        // Read lengths & elements so Svelte 5 tracks .push() mutations on the parent arrays
+        const xArray = Array.isArray(time) ? [...time] : [];
+        const yArray1 = Array.isArray(liveData) ? [...liveData] : [];
+        const yArray2 = Array.isArray(liveData2) ? [...liveData2] : null;
+
+        if (!localChart || yArray1.length === 0) return;
+
+        const seriesList = [
+            {
+                name: yArray2 ? "Channel 1" : titleText,
+                data: yArray1,
+                type: "line",
+                smooth: true,
+                showSymbol: false,
+                sampling: "lttb",
+                color: "#5580bf",
+            },
+        ];
+
+        if (yArray2) {
+            seriesList.push({
+                name: "Channel 2",
+                data: yArray2,
+                type: "line",
+                smooth: true,
+                showSymbol: false,
+                sampling: "lttb",
+                color: "#c94a4a",
+            });
+        }
+
+        localChart.setOption({
+            xAxis: { data: xArray },
+            series: seriesList,
+        });
+
+        liveNumberBar = yArray1.at(-1) ?? 0;
+        liveNumberBar2 = yArray2 ? (yArray2.at(-1) ?? 0) : null;
     });
 </script>
 
 <div class="GM">
     <div class="graph" bind:this={chartContainer}></div>
-    <div class="box">{liveNumberBar} {UnitSub}</div>
+    <div class="box">
+        {#if liveNumberBar2 !== null}
+            <span class="dual-text"
+                >{liveNumberBar} {UnitSub} | {liveNumberBar2} {UnitSub}</span
+            >
+        {:else}
+            {liveNumberBar} {UnitSub}
+        {/if}
+    </div>
 </div>
 
 <style>
     .GM {
-        display: flex; /* Added display: flex to make flex properties work */
+        display: flex;
         flex: auto;
         flex-direction: column;
     }
@@ -85,5 +120,12 @@
         background-color: #cb913a;
         text-align: center;
         font-size: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .dual-text {
+        font-size: 26px;
+        font-weight: bold;
     }
 </style>

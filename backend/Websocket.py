@@ -18,8 +18,8 @@ async def echo_handler(websocket):
         if(len(messageBuffer)!=0):
             response = messageBuffer.pop(0)
 
+            print("Sent: ",response)
             await websocket.send(response)
-            #print("Sent: ",response)
 
     except ConnectionClosed:
         print("Client disconnected.")
@@ -28,7 +28,7 @@ async def echo_handler(websocket):
         print("Performing cleanup")
 def SendMessage(message):
     messageBuffer.append(message)
-   # print("Added", messageBuffer)
+    print("Added", messageBuffer)
 def IsOpen():
     return connection
 def MessagePasser():

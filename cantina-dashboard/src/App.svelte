@@ -2,28 +2,12 @@
 	import { onMount } from "svelte";
 	import background from "/Falcon_Hyperspace.jpeg";
 	import geofence from "./midsouthflightgeofence.json";
-	import logo from "/croppedcantinalogo.png";
-	import L, {
-		geoJSON,
-		Marker,
-		polygon,
-		popup,
-		DomEvent,
-		Layer,
-		Polyline,
-	} from "leaflet";
+	import logo from "/cantinacirclelogo.png";
+	import L, { geoJSON } from "leaflet";
 	import "leaflet/dist/leaflet.css";
 
-	import * as echarts from "echarts";
-	import { init, use } from "echarts/core";
-	import { BarChart } from "echarts/charts";
-	import { GridComponent, TitleComponent } from "echarts/components";
-	import { CanvasRenderer } from "echarts/renderers";
-
-	import "./lib/AltitudeGraph.svelte";
 	import Graph from "./lib/Graph.svelte";
 	import Box from "./lib/Box.svelte";
-	import AltitudeGraph from "./lib/AltitudeGraph.svelte";
 	import EstoppedButton from "./lib/EstoppedButton.svelte";
 	import TextBox from "./lib/TextBox.svelte";
 	import WebSocketClient from "./lib/WebSocketClient.svelte";
@@ -33,35 +17,93 @@
 
 	/** @type {import('leaflet').Map} */
 	let map;
-	let chart = $state();
-	let chartDom;
-	let chartInstance;
-	let updateInterval;
-	let time = [0];
-	let dataData = [0];
-	let messageBuffer = [[0]];
 
+	let messageBuffer = $state([]);
 	let connectionState = $state(false);
 	let testState = $state(false);
-	let cords = [
-		[34.670843, -86.682593],
-		[34.748023, -86.554158],
-		[34.821717, -86.42878],
-	];
-	let d = [];
-	let chart2 = $state();
-	let altGraph = $state();
-	let SolarGraph = $state();
-	let altitudeData = [[]];
-	let wsClient = $state();
+
+	let cords = $state([]);
+	let polyline;
+
+	let chart1 = $state.raw(null);
+	let chart2 = $state.raw(null);
+	let altGraph = $state.raw(null);
+	let SolarGraph = $state.raw(null);
+	let wsClient = $state.raw(null);
 
 	function SendReleaseCommand() {
 		if (wsClient) {
-			wsClient.SendCommand();
+			wsClient.SendCommand("CMD RELEASE\n");
 		} else {
 			console.error("WebSocketClient is not initialized.");
 		}
 	}
+	function SendStowCommand() {
+		if (wsClient) {
+			wsClient.SendCommand("CMD STOW\n");
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
+	function SendSolarDeployCommand() {
+		if (wsClient) {
+			wsClient.SendCommand("CMD DEPLOY\n");
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
+	function SendSolarRetractCommand() {
+		if (wsClient) {
+			wsClient.SendCommand("CMD RETRACT\n");
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
+	function SendTXStartCommand() {
+		if (wsClient) {
+			wsClient.SendCommand("CMD CX START\n");
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
+	function SendTXStopCommand() {
+		if (wsClient) {
+			wsClient.SendCommand("CMD CX STOP\n");
+		} else {
+			console.error("WebSocketClient is not initialized.");
+		}
+	}
+
+	function FlipConnectionState() {
+		connectionState = !connectionState;
+	}
+
+	function FlipState() {
+		testState = !testState;
+		console.log("FLIP");
+	}
+
+	// Telemetry state
+	let TEAM_ID = $state("0004");
+	let MISSION_TIME = $state([]);
+	let PACKET_COUNT = $state(0);
+	let STATE = $state("");
+	let MECH_STATE = $state(0);
+
+	let ALTITUDE = $state([]);
+	let TEMP = $state([]);
+	let BATTERY_VOLTAGE = $state([]);
+	let SOLAR_1 = $state([]);
+	let SOLAR_2 = $state([]);
+	let GPS_LATITUDE = $state(0);
+	let GPS_LONGITUDE = $state(0);
+	let GPS_SATS = $state(0);
+	let GYRO_R = $state(0);
+	let GYRO_P = $state(0);
+	let GYRO_Y = $state(0);
+	let ACCEL_X = $state(0);
+	let ACCEL_Y = $state(0);
+	let ACCEL_Z = $state(0);
 	let option = {
 		title: {
 			text: "Live Data",
@@ -69,7 +111,6 @@
 		},
 		backgroundColor: "#D0B183",
 		tooltip: { trigger: "axis", showDelay: 0, transitionDuration: 0 },
-
 		dataZoom: [
 			{
 				type: "inside",
@@ -77,7 +118,6 @@
 				end: 100,
 			},
 		],
-
 		xAxis: {
 			axisLabel: {
 				show: true,
@@ -91,25 +131,24 @@
 					width: 2,
 				},
 			},
-			type: "value",
-			data: time,
+			type: "category",
+			data: [],
 			name: "Time (Seconds)",
 			nameTextStyle: {
-				fontSize: 15, // Set font size in pixels (default is 12)
-				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+				fontSize: 15,
+				fontWeight: "bold",
 			},
 			nameLocation: "center",
 			lineStyle: {
 				width: 30,
 			},
 		},
-
 		yAxis: {
 			axisLabel: {
 				show: true,
 				margin: 8,
-				fontSize: 15, // Font size
-				interval: 0, // Force show all labels
+				fontSize: 15,
+				interval: 0,
 			},
 			type: "value",
 			splitLine: {
@@ -119,27 +158,20 @@
 					width: 2,
 				},
 			},
-			lineStyle: {
-				width: 10,
-			},
 			name: "Default ()",
 			nameTextStyle: {
-				fontSize: 15, // Set font size in pixels (default is 12)
-				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
+				fontSize: 15,
+				fontWeight: "bold",
 			},
 			nameLocation: "center",
 			lineStyle: {
 				width: 30,
 			},
 		},
-
-		textStyle: { fontWeight: "bold" }, //color: "rgb(211,225,220)"
-		axis: {
-			lineStyle: { width: 20, fontWeight: "bold" },
-		},
+		textStyle: { fontWeight: "bold" },
 		series: [
 			{
-				data: dataData,
+				data: [],
 				showSymbol: false,
 				sampling: "lttb",
 				type: "line",
@@ -152,165 +184,8 @@
 		],
 	};
 
-	let counter = $state(0);
-
-	$effect(() => {
-		dataData.shift();
-		dataData.push(counter);
-	});
-	function FlipConnectionState() {
-		if (connectionState) {
-			connectionState = false;
-		} else {
-			connectionState = true;
-		}
-	}
-	function FlipState() {
-		if (testState) {
-			testState = false;
-		} else {
-			testState = true;
-		}
-		console.log("FLIP");
-	}
-
-	let TEAM_ID = $state.raw("0004");
-	let MISSION_TIME = $state.raw(0);
-	let PACKET_COUNT = $state.raw(0);
-	let STATE = $state.raw("");
-	let MECH_STATE = $state.raw(0);
-	let ALTITUDE = $state([]);
-	let TEMP = $state([]);
-	let BATTERY_VOLTAGE = $state([]);
-	let GPS_LATITUDE = $state.raw(0);
-	let GPS_LONGITUDE = $state.raw(0);
-	let GPS_SATS = $state.raw(0);
-	let GYRO_R = $state.raw(0);
-	let GYRO_P = $state.raw(0);
-	let GYRO_Y = $state.raw(0);
-
-	let bigOption = {
-		grid: [],
-		title: {
-			text: "Live Data",
-			textStyle: { fontWeight: "bold" },
-		},
-		backgroundColor: "#D0B183",
-		tooltip: { trigger: "axis", showDelay: 0, transitionDuration: 0 },
-
-		dataZoom: [
-			{
-				type: "inside",
-				start: 0,
-				end: 100,
-			},
-		],
-
-		xAxis: {
-			axisLabel: {
-				show: true,
-				margin: 8,
-				fontSize: 15,
-			},
-			splitLine: {
-				show: true,
-				lineStyle: {
-					color: "#AA9BAB",
-					width: 2,
-				},
-			},
-			type: "value",
-			data: time,
-			name: "Time (Seconds)",
-			nameTextStyle: {
-				fontSize: 15, // Set font size in pixels (default is 12)
-				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
-			},
-			nameLocation: "center",
-			lineStyle: {
-				width: 30,
-			},
-		},
-
-		yAxis: {
-			axisLabel: {
-				show: true,
-				margin: 8,
-				fontSize: 15, // Font size
-				interval: 0, // Force show all labels
-			},
-			type: "value",
-			splitLine: {
-				show: true,
-				lineStyle: {
-					color: "#AA9BAB",
-					width: 2,
-				},
-			},
-			lineStyle: {
-				width: 10,
-			},
-			name: "Default ()",
-			nameTextStyle: {
-				fontSize: 15, // Set font size in pixels (default is 12)
-				fontWeight: "bold", // Optional: 'normal', 'bold', 'bolder', or 'lighter'
-			},
-			nameLocation: "center",
-			lineStyle: {
-				width: 30,
-			},
-		},
-
-		textStyle: { fontWeight: "bold" }, //color: "rgb(211,225,220)"
-		axis: {
-			lineStyle: { width: 20, fontWeight: "bold" },
-		},
-		series: [
-			{
-				data: dataData,
-				showSymbol: false, // Speeds up rendering significantly by omitting point dots
-				sampling: "lttb",
-				type: "line",
-				smooth: true,
-				color: "#5580bf",
-				itemStyle: {
-					borderRadius: [8, 8, 8, 8], // Rounds top-left and top-right corners
-				},
-			},
-		],
-	};
-
 	onMount(() => {
-		//chart = echarts.init(chartDom);
-
-		use([BarChart, GridComponent, CanvasRenderer, TitleComponent]);
-
-		//chart.setOption(option);
-		/*
-		$effect(() => {
-			if (messageBuffer) {
-				console.log("p", messageBuffer);
-
-				TEAM_ID = 4;
-				MISSION_TIME = messageBuffer[-1][1];
-				PACKET_COUNT = messageBuffer.at(-1)[2];
-				STATE = messageBuffer.at(-1)[3];
-				MECH_STATE = messageBuffer.at(-1)[4];
-				ALTITUDE.push(parseInt(messageBuffer.at(-1)[5]));
-				TEMP.push(parseInt(messageBuffer.at(-1)[6]));
-				BATTERY_VOLTAGE.push(messageBuffer.at(-1)[7]);
-				GPS_LATITUDE = messageBuffer.at(-1)[8];
-				GPS_LONGITUDE = messageBuffer.at(-1)[9];
-				GPS_SATS = messageBuffer.at(-1)[10];
-				GYRO_R = messageBuffer.at(-1)[11];
-				GYRO_P = messageBuffer.at(-1)[12];
-				GYRO_Y = messageBuffer.at(-1)[13];
-				messageBuffer.shift();
-			}
-		});*/
-		function UpdateTelemetry() {}
 		let initialView = [34.7304, -86.5861];
-
 		map = L.map(mapContainer).setView(initialView, 13);
 
 		let geoGroup = L.featureGroup();
@@ -334,53 +209,77 @@
 				geoGroup.addLayer(fence);
 			});
 		}
-		L.polyline(cords, { color: "red" }).addTo(map);
+
+		polyline = L.polyline(cords, { color: "red" }).addTo(map);
 		mapper();
 		geoGroup.addTo(map);
-		let currentTime = $state(0);
-		let alt = $state(0);
-		let updateInterval = setInterval(() => {
-			console.log("bufferm");
-			if (messageBuffer.length > 0) {
-				let arg = messageBuffer.pop();
+		$effect(() => {
+			// Establish tracking on the reactive 'pathPoints' state
+			const ccords = cords;
 
-				console.log("p", messageBuffer);
+			// Use 'untrack' for the imperative Leaflet modifications
+			// This ensures we do not trigger a cyclic infinite loop
+			if (polyline && L) {
+				polyline.setLatLngs(ccords);
 
-				TEAM_ID = 4;
-				MISSION_TIME = parseInt(arg[1]);
+				// Pan the camera smoothly to follow the newest point
+				if (map && ccords.length > 0) {
+					map.panTo(ccords[ccords.length - 1]);
+				}
+			}
+		});
+		$effect(() => {
+			if (messageBuffer.length > !0) return;
+			// shift moves entire array, slow...
 
-				//messageBuffer[-1][1];
+			const arg = [...messageBuffer];
+			messageBuffer = [];
+
+			if (arg && arg.length >= 14) {
+				TEAM_ID = arg[0];
+				const packetTime = isNaN(Number(arg[1]))
+					? arg[1]
+					: Number(arg[1]);
+				//to seconds
+				MISSION_TIME = [...MISSION_TIME, packetTime / 1000];
+
 				PACKET_COUNT = arg[2];
 				STATE = arg[3];
 				MECH_STATE = arg[4];
-				ALTITUDE.push(parseInt(arg[5]));
-				TEMP.push(parseInt(arg[6]));
-				BATTERY_VOLTAGE.push(arg[7]);
+				ALTITUDE = [...ALTITUDE, Number(arg[5]) || 0];
+				TEMP = [...TEMP, Number(arg[6]) || 0];
+				BATTERY_VOLTAGE = [...BATTERY_VOLTAGE, Number(arg[7]) || 0];
 				GPS_LATITUDE = arg[8];
 				GPS_LONGITUDE = arg[9];
 				GPS_SATS = arg[10];
 				GYRO_R = arg[11];
 				GYRO_P = arg[12];
 				GYRO_Y = arg[13];
+				ACCEL_X = arg[14];
+				ACCEL_Y = arg[15];
+				ACCEL_Z = arg[16];
+				SOLAR_1 = [...SOLAR_1, Number(arg[17]) || 0];
+				SOLAR_2 = [...SOLAR_2, Number(arg[18]) || 0];
+				console.log("Received packet:", PACKET_COUNT);
+				if (arg[8] && arg[9]) {
+					cords.push([GPS_LATITUDE, GPS_LONGITUDE]);
+					console.log(
+						"Added point to cords: " +
+							GPS_LATITUDE +
+							", " +
+							GPS_LONGITUDE,
+					);
+				}
 			}
-			currentTime += 0.25;
-			const randomValue = Math.floor(Math.random() * 100);
-			d.push(randomValue);
-			altitudeData.push([currentTime, alt]);
-			alt += 5;
-
-			time.push(currentTime);
-		}, 100);
+		});
 
 		return () => {
 			map.remove();
-			clearInterval(updateInterval);
-			resizeObserver.disconnect();
+			//clearInterval(updateInterval);
 		};
 	});
 </script>
 
-<WebSocketClient {messageBuffer} />
 <h1 class="banner">
 	CANTINA DASHBOARD CANSAT #4
 	<img class="logo" alt="logo" src={logo} />
@@ -392,18 +291,19 @@
 				--border-radius="12px"
 				titleText="Battery Voltage"
 				time={MISSION_TIME}
-				liveData={d}
+				liveData={BATTERY_VOLTAGE}
 				Units="Voltage (V)"
 				UnitSub="V"
 				{option}
+				bind:chartInstance={chart1}
 			/>
 		</div>
 		<div class="graph-2">
 			<Graph
 				--border-radius="12px"
 				titleText="Temperature"
-				Units="Temperature (C&deg;)"
-				UnitSub="C&deg;"
+				Units="Temperature (C°)"
+				UnitSub="C°"
 				liveData={TEMP}
 				time={MISSION_TIME}
 				{option}
@@ -424,11 +324,12 @@
 		</div>
 		<div class="SolarGraph">
 			<Graph
-				liveData={d}
+				liveData={SOLAR_1}
+				liveData2={SOLAR_2}
 				time={MISSION_TIME}
 				bind:chartInstance={SolarGraph}
 				--border-radius="12px"
-				titleText="Solar graph"
+				titleText="Solar Voltage"
 				Units="Voltage (V)"
 				UnitSub="V"
 				{option}
@@ -441,32 +342,48 @@
 		<div bind:this={mapContainer} class="map"></div>
 
 		<div class="Gryo">
-			<TextBox title="X-DPS: 1.000" backgroundColor="#A4669C" />
-			<TextBox title="Y-DPS: 1.000" backgroundColor="#A4669C" />
-			<TextBox title="Z-DPS: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="DPS" backgroundColor="#A4669C" />
+
+			<TextBox title="X: {GYRO_R}" backgroundColor="#A4669C" />
+			<TextBox title="Y: {GYRO_P}" backgroundColor="#A4669C" />
+			<TextBox title="Z: {GYRO_Y}" backgroundColor="#A4669C" />
 		</div>
 		<div class="Acceleration">
-			<TextBox title="X-Acceleration: 1.000" backgroundColor="#A4669C" />
-			<TextBox title="Y-Acceleration: 1.000" backgroundColor="#A4669C" />
-			<TextBox title="Z-Acceleration: 1.000" backgroundColor="#A4669C" />
+			<TextBox title="ACCEL " backgroundColor="#A4669C" />
+
+			<TextBox title="X: {ACCEL_X}" backgroundColor="#A4669C" />
+			<TextBox title="Y: {ACCEL_Y}" backgroundColor="#A4669C" />
+			<TextBox title="Z: {ACCEL_Z}" backgroundColor="#A4669C" />
 		</div>
 		<div class="Misc">
-			<TextBox title="Sats: 3" backgroundColor="#A4669C" />
 			<TextBox
-				title="Packet count: {PACKET_COUNT}"
+				title="Solar Status: {MECH_STATE}"
 				backgroundColor="#A4669C"
 			/>
-			<TextBox title="Solar Status: DEPLOYED" backgroundColor="#A4669C" />
 			<TextBox title="Flight Status: {STATE}" backgroundColor="#A4669C" />
+			<TextBox
+				title="Mission Time: {MISSION_TIME.at(-1)}"
+				backgroundColor="#A4669C"
+			/>
+			<div class="dual">
+				<TextBox
+					title="PKT CNT: {PACKET_COUNT} "
+					backgroundColor="#A4669C"
+				/>
+				<TextBox
+					title="Satellites: {GPS_SATS}"
+					backgroundColor="#A4669C"
+				/>
+			</div>
+		</div>
+		<div class="status">
+			<Box title="Active Safety Lock?" status={!connectionState} />
+
+			<Box title="Connected to CanSat?" status={testState} />
 		</div>
 	</div>
 </div>
-<div class="time">Mission Time: 4:44.00</div>
-<div class="status">
-	<Box title="Active Safety Lock?" status={!connectionState} />
 
-	<Box title="Connected to CanSat?" status={testState} />
-</div>
 <div class="ButtonMaster">
 	<button class="inputButton" onclick={FlipConnectionState}
 		>SAFTEY LOCK</button
@@ -479,27 +396,54 @@
 		Runnable={SendReleaseCommand}
 	/>
 	<EstoppedButton
+		title="Stow Pocket Cube"
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={SendStowCommand}
+	/>
+	<EstoppedButton
 		title="Deploy Solar Panels "
 		color="#686592"
 		ESTOP={connectionState}
-		Runnable={FlipState}
+		Runnable={SendSolarDeployCommand}
+	/><EstoppedButton
+		title="Stow Solar Panels "
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={SendSolarRetractCommand}
+	/>
+	<EstoppedButton
+		title="Enable CX"
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={SendTXStartCommand}
+	/>
+	<EstoppedButton
+		title="Disable CX"
+		color="#686592"
+		ESTOP={connectionState}
+		Runnable={SendTXStopCommand}
 	/>
 </div>
-<WebSocketClient bind:this={wsClient} {messageBuffer} />
+<WebSocketClient
+	bind:this={wsClient}
+	bind:messageBuffer
+	bind:connected={testState}
+/>
 
 <style>
-	html,
-	body {
+	:global(html),
+	:global(body) {
 		margin: 0;
-		padding: 0;
-		width: 100vw;
-		height: 100vh;
+		padding: 1px;
+		height: 100vw;
+		padding-inline: 20px;
+		width: 100%; /* Fills the screen on smaller layouts */
+		max-width: 1300px; /* Won't grow larger than this on big monitors */
+		margin: 0 auto; /* Centers the layout */
 		overflow: hidden;
 	}
 
-	* {
-		box-sizing: border-box;
-	}
 	.DM {
 		display: flex;
 		flex-direction: column;
@@ -511,7 +455,7 @@
 		position: fixed;
 		top: 0;
 		left: 0;
-		width: 100%;
+		width: 99.68%;
 		height: 10vh;
 		border-style: dashed;
 		background-color: #86a8d8;
@@ -524,8 +468,8 @@
 	}
 
 	.logo {
-		width: 110px;
-		height: 80px;
+		width: 75px;
+		height: 75px;
 
 		position: absolute;
 		left: 20px;
@@ -536,48 +480,45 @@
 	.data {
 		display: flex;
 		flex-direction: row;
-		gap: 15px;
+		gap: 5px;
 		padding: 20px;
-		margin-top: 10vh;
-		height: 68vh;
+		margin-top: 60px;
+		height: 460px;
 	}
 
 	.map {
 		width: 300px;
-		height: 300px;
+		height: 298px;
 		border-radius: 12px;
 		overflow: hidden;
 		z-index: 0;
 	}
 
-	.time {
-		transform: translate(322px, -304px);
-		width: 585px;
-		background-color: #a4669c;
-		border-radius: 10px;
-		font-size: 40px;
-	}
 	.ButtonMaster {
 		display: flex;
 		flex-direction: row;
 		gap: 10px;
+		width: 930px;
+		height: 110px;
+		border-radius: 12px;
 
-		transform: translate(1015px, -400px);
+		transform: translate(322px, -228px);
 	}
 
 	.inputButton {
-		width: 100px;
+		width: 200px;
 		height: 100px;
 		border-radius: 12px;
+		text-align: center;
+		font-size: 24px;
+		font-weight: bold;
 		background-color: #86a8d8;
 	}
 
 	.status {
 		display: flex;
-		flex-direction: row;
-		gap: 10px;
-		flex-grow: 1;
-		transform: translate(325px, -300px);
+		flex-direction: column;
+		gap: 5px;
 	}
 
 	.TextData {
@@ -585,7 +526,7 @@
 		flex-direction: row;
 		gap: 2px;
 
-		transform: translate(20px, -50%);
+		transform: translate(20px, -125px);
 	}
 	.Gryo {
 		display: flex;
@@ -599,11 +540,15 @@
 		flex-direction: column;
 		gap: 2px;
 	}
+	.dual {
+		display: flex;
+		flex-direction: row;
+		gap: 2px;
+	}
 	.back {
 		position: fixed;
 		top: 0;
 		left: 0;
-		right: 0;
 		bottom: 0;
 		width: 100vw;
 		height: 100vh;

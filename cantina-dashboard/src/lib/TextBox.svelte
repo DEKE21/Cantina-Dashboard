@@ -13,7 +13,7 @@
         border-radius: 10px;
 
         background-color: var(--color);
-
+        font-weight: bold;
         text-align: center;
         font-size: 40px;
     }
