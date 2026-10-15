@@ -228,54 +228,64 @@
 				}
 			}
 		});
-		$effect(() => {
-			if (messageBuffer.length > !0) return;
-			// shift moves entire array, slow...
+		const dataLoop = setInterval(() => {
+			if (messageBuffer.length === 0) return;
 
-			const arg = [...messageBuffer];
-			messageBuffer = [];
+			// Splice grabs all pending messages and clears the buffer in one O(1) step
+			const currentMessages = messageBuffer.splice(
+				0,
+				messageBuffer.length,
+			);
+			let addedCords = false;
 
-			if (arg && arg.length >= 14) {
-				TEAM_ID = arg[0];
-				const packetTime = isNaN(Number(arg[1]))
-					? arg[1]
-					: Number(arg[1]);
-				//to seconds
-				MISSION_TIME = [...MISSION_TIME, packetTime / 1000];
+			for (let i = 0; i < currentMessages.length; i++) {
+				let arg = currentMessages[i];
 
-				PACKET_COUNT = arg[2];
-				STATE = arg[3];
-				MECH_STATE = arg[4];
-				ALTITUDE = [...ALTITUDE, Number(arg[5]) || 0];
-				TEMP = [...TEMP, Number(arg[6]) || 0];
-				BATTERY_VOLTAGE = [...BATTERY_VOLTAGE, Number(arg[7]) || 0];
-				GPS_LATITUDE = arg[8];
-				GPS_LONGITUDE = arg[9];
-				GPS_SATS = arg[10];
-				GYRO_R = arg[11];
-				GYRO_P = arg[12];
-				GYRO_Y = arg[13];
-				ACCEL_X = arg[14];
-				ACCEL_Y = arg[15];
-				ACCEL_Z = arg[16];
-				SOLAR_1 = [...SOLAR_1, Number(arg[17]) || 0];
-				SOLAR_2 = [...SOLAR_2, Number(arg[18]) || 0];
-				console.log("Received packet:", PACKET_COUNT);
-				if (arg[8] && arg[9]) {
-					cords.push([GPS_LATITUDE, GPS_LONGITUDE]);
-					console.log(
-						"Added point to cords: " +
-							GPS_LATITUDE +
-							", " +
-							GPS_LONGITUDE,
-					);
+				if (arg && arg.length >= 14) {
+					TEAM_ID = arg[0];
+					const packetTime = isNaN(Number(arg[1]))
+						? arg[1]
+						: Number(arg[1]);
+
+					MISSION_TIME.push(packetTime / 1000);
+					PACKET_COUNT = arg[2];
+					STATE = arg[3];
+					MECH_STATE = arg[4];
+					ALTITUDE.push(Number(arg[5]) || 0);
+					TEMP.push(Number(arg[6]) || 0);
+					BATTERY_VOLTAGE.push(Number(arg[7]) || 0);
+
+					GPS_LATITUDE = arg[8];
+					GPS_LONGITUDE = arg[9];
+					GPS_SATS = arg[10];
+					GYRO_R = arg[11];
+					GYRO_P = arg[12];
+					GYRO_Y = arg[13];
+					ACCEL_X = arg[14];
+					ACCEL_Y = arg[15];
+					ACCEL_Z = arg[16];
+
+					SOLAR_1.push(Number(arg[17]) || 0);
+					SOLAR_2.push(Number(arg[18]) || 0);
+
+					if (arg[8] && arg[9]) {
+						cords.push([GPS_LATITUDE, GPS_LONGITUDE]);
+						addedCords = true;
+					}
 				}
 			}
-		});
 
+			// Update map only once per tick, avoiding Leaflet animation stutter
+			if (addedCords && polyline && map) {
+				polyline.setLatLngs(cords);
+				map.setView(cords[cords.length - 1], map.getZoom(), {
+					animate: false,
+				});
+			}
+		}, 100);
 		return () => {
 			map.remove();
-			//clearInterval(updateInterval);
+			clearInterval(dataLoop);
 		};
 	});
 </script>

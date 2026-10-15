@@ -13,7 +13,7 @@ serInboundbuffer = []
 async def serialMan():
     while True:
         try:
-            async with serialx.async_serial_for_url('COM10',baudrate=115200) as serial:
+            async with serialx.async_serial_for_url('COM11',baudrate=115200) as serial:
                 print("Connection")
                 while True:
                     line = await serial.readline()
