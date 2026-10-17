@@ -84,7 +84,7 @@ void setup() {
   // Activate Long Range mode
   esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
 
-  int chan = 4;
+  const int chan = 4;
   ESP_ERROR_CHECK(esp_wifi_set_channel(chan, WIFI_SECOND_CHAN_NONE));
 
   if (esp_now_init() != ESP_OK) {
@@ -110,16 +110,16 @@ void setup() {
 
   // Listen for incoming telemetry packets in the background
   esp_now_register_recv_cb(onDataRecv);
-  ledcSetup(6, 2000,8);
+  ledcSetup(6, 2000, 8);
   ledcAttachPin(PIN, 6);
 
-   xTaskCreatePinnedToCore(MusicTaskCode, "MusicTask", 4000, NULL, 1,
-                        &MusicTaskHandle, 1);
+  xTaskCreatePinnedToCore(MusicTaskCode, "MusicTask", 4000, NULL, 1,
+                          &MusicTaskHandle, 1);
 }
 
 void loop() {
   // Read command from Serial Monitor / Python backend and send to Flight
-  // Computer   
+  // Computer
   if (Serial.available()) {
     cmd = Serial.readStringUntil('\n');
     cmd.trim();

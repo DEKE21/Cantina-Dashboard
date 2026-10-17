@@ -255,8 +255,8 @@
 					TEMP.push(Number(arg[6]) || 0);
 					BATTERY_VOLTAGE.push(Number(arg[7]) || 0);
 
-					GPS_LATITUDE = arg[8];
-					GPS_LONGITUDE = arg[9];
+					GPS_LATITUDE = arg[8] / 10000000.0;
+					GPS_LONGITUDE = arg[9] / 10000000.0;
 					GPS_SATS = arg[10];
 					GYRO_R = arg[11];
 					GYRO_P = arg[12];
@@ -265,8 +265,8 @@
 					ACCEL_Y = arg[15];
 					ACCEL_Z = arg[16];
 
-					SOLAR_1.push(Number(arg[17]) || 0);
-					SOLAR_2.push(Number(arg[18]) || 0);
+					SOLAR_1.push(Number(arg[18]) || 0);
+					SOLAR_2.push(Number(arg[19]) || 0);
 
 					if (arg[8] && arg[9]) {
 						cords.push([GPS_LATITUDE, GPS_LONGITUDE]);
@@ -277,12 +277,16 @@
 
 			// Update map only once per tick, avoiding Leaflet animation stutter
 			if (addedCords && polyline && map) {
-				polyline.setLatLngs(cords);
-				map.setView(cords[cords.length - 1], map.getZoom(), {
-					animate: false,
-				});
+				if (cords[0] === 0 && cords[1] === 0) {
+					cords.shift();
+				} else {
+					polyline.setLatLngs(cords);
+					map.setView(cords[cords.length - 1], map.getZoom(), {
+						animate: false,
+					});
+				}
 			}
-		}, 100);
+		}, 50);
 		return () => {
 			map.remove();
 			clearInterval(dataLoop);
