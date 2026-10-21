@@ -14,14 +14,14 @@
     } = $props();
 
     let chartContainer;
-    let localChart = $state.raw(null); // $state.raw tracks readiness without deep-proxying ECharts!
+    let localChart = $state.raw(null);
     let liveNumberBar = $state(0);
     let liveNumberBar2 = $state(null);
 
     onMount(() => {
         const instance = echarts.init(chartContainer);
 
-        // Clone option so 4 graphs don't mutate the exact same shared JS object reference
+        // Clone option so 4 graphs don't mutate the exact same object reference
         if (option) {
             instance.setOption(structuredClone(option));
         }
@@ -47,7 +47,6 @@
     });
 
     $effect(() => {
-        // Read lengths & elements so Svelte 5 tracks .push() mutations on the parent arrays
         const xArray = Array.isArray(time) ? [...time] : [];
         const yArray1 = Array.isArray(liveData) ? [...liveData] : [];
         const yArray2 = Array.isArray(liveData2) ? [...liveData2] : null;

@@ -6,7 +6,7 @@ class TelemetryData(object):
     MissionTime: int
     PacketCount: int
     State: int
-    MechState: int
+    MechState: str
     altitude:float
     temp:float
     batteryVoltage:float

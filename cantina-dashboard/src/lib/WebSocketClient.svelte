@@ -2,7 +2,6 @@
     import { onMount } from "svelte";
 
     // 1. Default to an empty array [] instead of [[]]
-    // Bonus: Added an optional connected = $bindable(false) so your dashboard status box can show real connection status!
     let { messageBuffer = $bindable([]), connected = $bindable(false) } =
         $props();
 
@@ -41,7 +40,6 @@
 
         function Opened() {
             console.log("Client connection successful");
-            connected = true;
             if (reconnection) {
                 clearTimeout(reconnection);
                 reconnection = null;
@@ -66,13 +64,15 @@
             if (typeof event.data !== "string") return;
 
             const raw = event.data.trim();
+            connected = true;
             // Ignore empty messages or ping/pong heartbeats
             if (!raw || raw === "ping" || raw === "pong") return;
 
             const buff = raw.split(",");
-            // Only push valid telemetry packets (expecting at least 14 columns: indices 0-13)
+            // Only push valid telemetry packets
             if (buff.length >= 14) {
                 //messageBuffer.push(buff);
+
                 messageBuffer = [...messageBuffer, buff];
             } else {
                 console.warn("Ignored malformed/non-telemetry packet:", raw);

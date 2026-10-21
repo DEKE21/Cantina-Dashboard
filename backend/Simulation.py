@@ -5,7 +5,7 @@ import traceback
 from TelemetryData import TelemetryData
 
 data = TelemetryData(
- 4,5,3,0,0,5,69.95,5.61,34.74037,-86.576105,3,1.41,0.35,0.2,3.18,3.03,5.02,0,0).ToDict()
+ 4,5,3,0,"0",5,69.95,5.61,34.74037,-86.576105,3,1.41,0.35,0.2,3.18,3.03,5.02,0,0).ToDict()
 BASE_TEMP = 70.0
 CX = True
 async def tim():

@@ -104,6 +104,7 @@
 	let ACCEL_X = $state(0);
 	let ACCEL_Y = $state(0);
 	let ACCEL_Z = $state(0);
+	let SOLAR_STATE = $state(0);
 	let option = {
 		title: {
 			text: "Live Data",
@@ -191,7 +192,7 @@
 		let geoGroup = L.featureGroup();
 
 		L.tileLayer(
-			"https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+			"http://localhost:3650/api/maps/m/{z}/{x}/{y}@2x.jpg",
 			{},
 		).addTo(map);
 
@@ -214,11 +215,12 @@
 		mapper();
 		geoGroup.addTo(map);
 		$effect(() => {
-			// Establish tracking on the reactive 'pathPoints' state
+			if (cords[0] === 0 && cords[1] === 0) {
+				cords.shift();
+				return; // Skip updating the map if the first point is [0, 0]
+			}
 			const ccords = cords;
 
-			// Use 'untrack' for the imperative Leaflet modifications
-			// This ensures we do not trigger a cyclic infinite loop
 			if (polyline && L) {
 				polyline.setLatLngs(ccords);
 
@@ -264,18 +266,25 @@
 					ACCEL_X = arg[14];
 					ACCEL_Y = arg[15];
 					ACCEL_Z = arg[16];
+					SOLAR_STATE = arg[17];
 
 					SOLAR_1.push(Number(arg[18]) || 0);
 					SOLAR_2.push(Number(arg[19]) || 0);
 
-					if (arg[8] && arg[9]) {
-						cords.push([GPS_LATITUDE, GPS_LONGITUDE]);
+					if (GPS_LATITUDE && GPS_LONGITUDE) {
+						if (GPS_LATITUDE === 0 && GPS_LONGITUDE === 0) {
+							console.warn(
+								"Received GPS coordinates are both zero, ignoring.",
+							);
+							return; // Skip adding this point to the path
+						}
+						cords.push([GPS_LONGITUDE, GPS_LATITUDE]);
 						addedCords = true;
 					}
 				}
 			}
 
-			// Update map only once per tick, avoiding Leaflet animation stutter
+			// Update map only once per tick
 			if (addedCords && polyline && map) {
 				if (cords[0] === 0 && cords[1] === 0) {
 					cords.shift();
@@ -371,7 +380,7 @@
 		</div>
 		<div class="Misc">
 			<TextBox
-				title="Solar Status: {MECH_STATE}"
+				title="Solar Status: {SOLAR_STATE}"
 				backgroundColor="#A4669C"
 			/>
 			<TextBox title="Flight Status: {STATE}" backgroundColor="#A4669C" />
@@ -452,9 +461,9 @@
 		padding: 1px;
 		height: 100vw;
 		padding-inline: 20px;
-		width: 100%; /* Fills the screen on smaller layouts */
-		max-width: 1300px; /* Won't grow larger than this on big monitors */
-		margin: 0 auto; /* Centers the layout */
+		width: 100%;
+		max-width: 1300px;
+		margin: 0 auto;
 		overflow: hidden;
 	}
 
