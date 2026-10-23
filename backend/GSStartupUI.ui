@@ -39,9 +39,9 @@
     </rect>
    </property>
    <property name="title">
-    <string>GroupBox</string>
+    <string>Run Mode</string>
    </property>
-   <widget class="QRadioButton" name="radioButton">
+   <widget class="QRadioButton" name="simulation_BTN">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -54,7 +54,7 @@
      <string>Simulation</string>
     </property>
    </widget>
-   <widget class="QRadioButton" name="radioButton_2">
+   <widget class="QRadioButton" name="real_BTN">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -67,7 +67,7 @@
      <string>Real</string>
     </property>
    </widget>
-   <widget class="QRadioButton" name="radioButton_3">
+   <widget class="QRadioButton" name="logReplay_BTN">
     <property name="geometry">
      <rect>
       <x>10</x>
