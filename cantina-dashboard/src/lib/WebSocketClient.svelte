@@ -93,7 +93,7 @@
                 }
                 socket = null;
             }
-        }
+        }   
 
         function HandleError() {
             console.error("WebSocket encountered an error");

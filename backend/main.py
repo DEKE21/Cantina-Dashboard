@@ -5,6 +5,12 @@ import numpy
 from TelemetryData import TelemetryData
 import Websocket
 import serialx
+import sys
+import PyQt6.QtCore
+from PyQt6.QtWidgets import QApplication, QWidget
+
+# Only needed for access to command line arguments
+
 msg =""
 buffer =[]
 serInboundbuffer = []
@@ -43,6 +49,21 @@ async def MessageHandler():
 
     
 async def main():
+    port = "COM11"
+    mode = "REAL"
+    
+    filename = "Flight_0004.csv"
+    #app = QApplication(sys.argv)
+    
+# Create a Qt widget, which will be our window.
+   # window = QWidget()
+    #window.setWindowTitle("Telemetry Startup Tool")
+    
+   # window.show()  # IMPORTANT!!!!! Windows are hidden by default.
+
+# Start the event loop.
+   # app.exec()
+   
     tasks =    asyncio.gather(Websocket.NetworkHandler(),serialMan(),MessageHandler())
     await tasks
 
