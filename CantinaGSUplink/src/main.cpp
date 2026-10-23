@@ -13,7 +13,7 @@ struct Note {
   int postDelayMs; // Rest period after the note plays
 };
 
-  const Note song[] = {
+const Note song[] = {
     {440, 110, 110}, {587, 110, 110}, {440, 110, 110}, {587, 110, 110},
     {440, 120, 10},  {587, 100, 120}, {440, 210, 10},  {415, 100, 0},
     {440, 110, 110}, {440, 110, 20},  {415, 100, 0},   {440, 110, 10},
@@ -29,7 +29,7 @@ struct Note {
     {349, 340, 10},  {294, 320, 220}, {294, 280, 0},   {277, 60, 10},
     {294, 40, 0},    {330, 50, 10}};
 const int totalNotes = sizeof(song) / sizeof(Note);
-void MusicTaskCode(void *pvParameters) { 
+void MusicTaskCode(void *pvParameters) {
   (void)pvParameters;
 
   for (;;) {
@@ -121,7 +121,7 @@ void loop() {
   // Computer
   if (Serial.available()) {
     cmd = Serial.readStringUntil('\n');
-      
+
     cmd.trim();
 
     if (cmd.length() > 0) {

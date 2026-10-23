@@ -380,7 +380,7 @@
 		</div>
 		<div class="Misc">
 			<TextBox
-				title="Solar Status: {SOLAR_STATE}"
+				title="Solar Status: {MECH_STATE}"
 				backgroundColor="#A4669C"
 			/>
 			<TextBox title="Flight Status: {STATE}" backgroundColor="#A4669C" />
